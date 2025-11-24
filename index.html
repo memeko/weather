@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Время, календарь и погода</title>
+  <style>
+    :root {
+      --bg: #0b0b10;
+      --card-bg: #13131b;
+      --accent: #b37aff;
+      --accent-soft: rgba(179,122,255,0.18);
+      --text-main: #f5f5f7;
+      --text-muted: #a0a0b3;
+      --border: #252538;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, #1b1b2b 0, #050509 55%);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      color: var(--text-main);
+    }
+
+    .card {
+      background: radial-gradient(circle at top left, #1f172a 0, #111118 55%);
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.7);
+      padding: 18px 20px 16px;
+      max-width: 540px;
+      width: 100%;
+    }
+
+    .card-header-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .card-pill {
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .card-small-date {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      margin-bottom: 2px;
+    }
+
+    .card-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    .card-main-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    /* Аналоговые часы */
+    .clock-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .clock-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .clock {
+      position: relative;
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: radial-gradient(circle at top, #252038 0, #0e0e16 60%);
+      box-shadow: 0 0 16px rgba(0, 0, 0, 0.8);
+    }
+
+    .clock-center-dot {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 8px;
+      height: 8px;
+      transform: translate(-50%, -50%);
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(179,122,255,0.9);
+    }
+
+    .clock-hand {
+      position: absolute;
+      left: 50%;
+      bottom: 50%;
+      transform-origin: bottom center;
+      transform: translateX(-50%) rotate(0deg);
+      border-radius: 999px;
+    }
+
+    .clock-hand-hour {
+      width: 5px;
+      height: 40px;
+      background: #f5f5f7;
+    }
+
+    .clock-hand-minute {
+      width: 3px;
+      height: 55px;
+      background: var(--accent);
+    }
+
+    .clock-hand-second {
+      width: 2px;
+      height: 65px;
+      background: #f78fb3;
+      opacity: 0.9;
+    }
+
+    .clock-mark {
+      position: absolute;
+      width: 2px;
+      height: 8px;
+      background: rgba(255,255,255,0.25);
+      top: 4px;
+      left: 50%;
+      transform-origin: center 76px;
+    }
+
+    .clock-mark-strong {
+      height: 10px;
+      background: rgba(255,255,255,0.6);
+    }
+
+    /* Правая часть: календарь + погода + мировое время */
+    .right-column {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Календарь */
+    .calendar {
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 8px 10px 10px;
+      background: rgba(0,0,0,0.18);
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 4px;
+    }
+
+    .calendar-month {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .calendar-year {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+      font-size: 10px;
+      text-align: center;
+    }
+
+    .calendar-weekday {
+      color: var(--text-muted);
+      padding-bottom: 2px;
+    }
+
+    .calendar-day {
+      padding: 4px 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-main);
+    }
+
+    .calendar-day--other {
+      color: rgba(160,160,179,0.5);
+    }
+
+    .calendar-day--today {
+      background: linear-gradient(135deg, #6c5ce7, #b37aff);
+      box-shadow: 0 0 10px rgba(179,122,255,0.8);
+      font-weight: 600;
+    }
+
+    /* Погода */
+    .weather {
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 6px 10px 8px;
+      background: rgba(0,0,0,0.18);
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .weather-title {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .weather-main {
+      font-size: 13px;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .weather-temp {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .weather-desc {
+      color: var(--text-main);
+    }
+
+    .weather-extra {
+      color: var(--text-muted);
+      font-size: 10px;
+    }
+
+    /* Мировое время */
+    .world-times {
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 6px 10px 8px;
+      background: rgba(0,0,0,0.18);
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .world-times-title {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .world-time-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-family: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .world-time-city {
+      color: var(--text-main);
+      font-size: 11px;
+    }
+
+    .world-time-value {
+      font-size: 12px;
+      color: var(--accent);
+    }
+
+    .card-footer {
+      margin-top: 6px;
+      font-size: 10px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    @media (max-width: 560px) {
+      .card-main-grid {
+        grid-template-columns: 1fr;
+      }
+      .card {
+        border-radius: 14px;
+        padding: 16px 14px 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header-line">
+      <div class="card-pill">time & weather</div>
+      <div class="card-small-date" id="headerDate"></div>
+    </div>
+
+    <div class="card-title">Время, календарь и небо над Москвой</div>
+    <div class="card-subtitle">Часы, месяц, погода и мировое время — одним взглядом.</div>
+
+    <div class="card-main-grid">
+      <!-- Левая колонка: аналоговые часы -->
+      <div class="clock-wrapper">
+        <div class="clock-label">Сейчас (локальное время устройства)</div>
+        <div class="clock" id="analogClock">
+          <div class="clock-center-dot"></div>
+          <!-- отметки -->
+        </div>
+      </div>
+
+      <!-- Правая колонка: календарь + погода + мировое время -->
+      <div class="right-column">
+        <div class="calendar">
+          <div class="calendar-header">
+            <div class="calendar-month" id="calendarMonth"></div>
+            <div class="calendar-year" id="calendarYear"></div>
+          </div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+
+        <div class="weather">
+          <div class="weather-title">Погода в Москве (по данным open-meteo)</div>
+          <div class="weather-main">
+            <div class="weather-temp" id="weatherTemp">--°C</div>
+            <div class="weather-desc" id="weatherDesc">обновление...</div>
+          </div>
+          <div class="weather-extra" id="weatherExtra"></div>
+        </div>
+
+        <div class="world-times">
+          <div class="world-times-title">Мировое время</div>
+          <div class="world-time-row">
+            <div class="world-time-city">Москва</div>
+            <div class="world-time-value" id="timeMoscow">--:--:--</div>
+          </div>
+          <div class="world-time-row">
+            <div class="world-time-city">Пекин</div>
+            <div class="world-time-value" id="timeBeijing">--:--:--</div>
+          </div>
+          <div class="world-time-row">
+            <div class="world-time-city">Нью-Йорк</div>
+            <div class="world-time-value" id="timeNY">--:--:--</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-footer">
+      <span>[Система загружает сводку...]</span>
+      <span>Пользователь, сиди дома.</span>
+    </div>
+  </div>
+
+  <script>
+    // ======= Заголовок с датой =======
+    function updateHeaderDate() {
+      const headerDate = document.getElementById("headerDate");
+      const now = new Date();
+      const day = String(now.getDate()).padStart(2, "0");
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const year = now.getFullYear();
+      headerDate.textContent = `${day}.${month}.${year}`;
+    }
+
+    // ======= Аналоговые часы =======
+    function createClockMarks() {
+      const clock = document.getElementById("analogClock");
+      const radius = 80; // половина 160px
+
+      for (let i = 0; i < 12; i++) {
+        const mark = document.createElement("div");
+        mark.className = "clock-mark";
+        if (i % 3 === 0) {
+          mark.classList.add("clock-mark-strong");
+        }
+        const angle = (i / 12) * 360;
+        mark.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+        clock.appendChild(mark);
+      }
+
+      const hourHand = document.createElement("div");
+      hourHand.id = "hourHand";
+      hourHand.className = "clock-hand clock-hand-hour";
+
+      const minuteHand = document.createElement("div");
+      minuteHand.id = "minuteHand";
+      minuteHand.className = "clock-hand clock-hand-minute";
+
+      const secondHand = document.createElement("div");
+      secondHand.id = "secondHand";
+      secondHand.className = "clock-hand clock-hand-second";
+
+      clock.appendChild(hourHand);
+      clock.appendChild(minuteHand);
+      clock.appendChild(secondHand);
+    }
+
+    function updateAnalogClock() {
+      const now = new Date();
+      const seconds = now.getSeconds();
+      const minutes = now.getMinutes();
+      const hours = now.getHours();
+
+      const secondAngle = seconds * 6; // 360 / 60
+      const minuteAngle = minutes * 6 + seconds * 0.1;
+      const hourAngle = ((hours % 12) / 12) * 360 + minutes * 0.5;
+
+      const hourHand = document.getElementById("hourHand");
+      const minuteHand = document.getElementById("minuteHand");
+      const secondHand = document.getElementById("secondHand");
+
+      if (!hourHand || !minuteHand || !secondHand) return;
+
+      hourHand.style.transform = `translateX(-50%) rotate(${hourAngle}deg)`;
+      minuteHand.style.transform = `translateX(-50%) rotate(${minuteAngle}deg)`;
+      secondHand.style.transform = `translateX(-50%) rotate(${secondAngle}deg)`;
+    }
+
+    // ======= Календарь =======
+    function buildCalendar() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth(); // 0-11
+      const today = now.getDate();
+
+      const calendarMonthEl = document.getElementById("calendarMonth");
+      const calendarYearEl = document.getElementById("calendarYear");
+      const calendarGridEl = document.getElementById("calendarGrid");
+
+      const monthNames = [
+        "Январь","Февраль","Март","Апрель","Май","Июнь",
+        "Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"
+      ];
+      const weekdayNames = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+
+      calendarMonthEl.textContent = monthNames[month];
+      calendarYearEl.textContent = year;
+
+      calendarGridEl.innerHTML = "";
+
+      // Заголовки дней недели
+      weekdayNames.forEach(name => {
+        const div = document.createElement("div");
+        div.className = "calendar-weekday";
+        div.textContent = name;
+        calendarGridEl.appendChild(div);
+      });
+
+      // День недели первого числа (в JS: 0=Вс..6=Сб)
+      const firstDayJs = new Date(year, month, 1).getDay();
+      // Приводим к формату: 0=Пн..6=Вс
+      const firstDay = (firstDayJs + 6) % 7;
+
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+      // Предыдущий месяц (пустые ячейки)
+      for (let i = 0; i < firstDay; i++) {
+        const d = daysInPrevMonth - firstDay + 1 + i;
+        const div = document.createElement("div");
+        div.className = "calendar-day calendar-day--other";
+        div.textContent = d;
+        calendarGridEl.appendChild(div);
+      }
+
+      // Текущий месяц
+      for (let d = 1; d <= daysInMonth; d++) {
+        const div = document.createElement("div");
+        div.className = "calendar-day";
+        if (d === today) {
+          div.classList.add("calendar-day--today");
+        }
+        div.textContent = d;
+        calendarGridEl.appendChild(div);
+      }
+
+      // Добиваем до полного количества строк (6 недель = 42 дня + 7 названий = 49)
+      const totalCells = 7 + firstDay + daysInMonth;
+      const remaining = 49 - totalCells;
+      for (let i = 1; i <= remaining; i++) {
+        const div = document.createElement("div");
+        div.className = "calendar-day calendar-day--other";
+        div.textContent = i;
+        calendarGridEl.appendChild(div);
+      }
+    }
+
+    // ======= Погода в Москве (open-meteo) =======
+    async function updateWeather() {
+      const tempEl = document.getElementById("weatherTemp");
+      const descEl = document.getElementById("weatherDesc");
+      const extraEl = document.getElementById("weatherExtra");
+
+      const url = "https://api.open-meteo.com/v1/forecast?latitude=55.75&longitude=37.62&current_weather=true&timezone=auto";
+
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Network response was not ok");
+        const data = await res.json();
+
+        const cw = data.current_weather;
+        if (!cw) throw new Error("No current_weather field");
+
+        const temp = Math.round(cw.temperature);
+        const wind = cw.windspeed;
+        const code = cw.weathercode;
+
+        tempEl.textContent = `${temp}°C`;
+        descEl.textContent = weatherCodeToRu(code);
+        extraEl.textContent = `Ветер: ${wind} км/ч`;
+      } catch (e) {
+        tempEl.textContent = "--°C";
+        descEl.textContent = "данные недоступны";
+        extraEl.textContent = "Проверь подключение или блокировки API.";
+      }
+    }
+
+    // Простейшая расшифровка кодов погоды open-meteo
+    function weatherCodeToRu(code) {
+      const map = {
+        0: "ясно",
+        1: "в основном ясно",
+        2: "переменная облачность",
+        3: "пасмурно",
+        45: "туман",
+        48: "изморозь",
+        51: "лёгкая морось",
+        53: "морось",
+        55: "сильная морось",
+        61: "слабый дождь",
+        63: "дождь",
+        65: "сильный дождь",
+        71: "слабый снег",
+        73: "снег",
+        75: "сильный снег",
+        95: "гроза",
+        96: "гроза с градом",
+        99: "сильная гроза с градом"
+      };
+      return map[code] || "погода меняется";
+    }
+
+    // ======= Мировое время =======
+    function updateWorldTimes() {
+      const now = new Date();
+      const opts = {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      };
+
+      const moscow = now.toLocaleTimeString("ru-RU", { ...opts, timeZone: "Europe/Moscow" });
+      const beijing = now.toLocaleTimeString("ru-RU", { ...opts, timeZone: "Asia/Shanghai" });
+      const ny = now.toLocaleTimeString("en-US", { ...opts, timeZone: "America/New_York" });
+
+      document.getElementById("timeMoscow").textContent = moscow;
+      document.getElementById("timeBeijing").textContent = beijing;
+      document.getElementById("timeNY").textContent = ny;
+    }
+
+    // ======= Инициализация =======
+    updateHeaderDate();
+    createClockMarks();
+    buildCalendar();
+    updateAnalogClock();
+    updateWorldTimes();
+    updateWeather();
+
+    // Часы и мировое время — обновляем каждую секунду
+    setInterval(() => {
+      updateAnalogClock();
+      updateWorldTimes();
+    }, 1000);
+
+    // Погоду можно обновлять раз в 15–30 минут
+    setInterval(updateWeather, 30 * 60 * 1000);
+  </script>
+</body>
+</html>
